@@ -9,7 +9,8 @@ This was also inspired by another similar library, [barcodefragmentlib](https://
 ## Usage
 
 1. Add the library as a module dependency to your app.
-2. Add the following permissions to your AndroidManifest.xml
+2. Add the ZXing core library (the jar is included in libs/zxing-core-2.3.jar)
+3. Add the following permissions to your AndroidManifest.xml
 ```xml
     <uses-permission android:name="android.permission.CAMERA" />
  	<uses-feature android:name="android.hardware.camera" />
@@ -17,7 +18,7 @@ This was also inspired by another similar library, [barcodefragmentlib](https://
  	<uses-feature android:name="android.hardware.camera.flash" />
 ```
 
-3. Extend the BarCodeScannerFragment class and add a callback somewhere:
+4. Extend the BarCodeScannerFragment class and add a callback somewhere:
 
     ```java
     this.setmCallBack(new BarCodeScannerFragment.IResultCallback() {
@@ -27,11 +28,10 @@ This was also inspired by another similar library, [barcodefragmentlib](https://
         }
     });
     ```
-4. Enjoy!
+5. Enjoy!
 
 A sample activity is included, look at SampleActivity.java, SampleFragment.java and sample_activity.xml to get an idea.
 
-If you have any questions contact me (Jaime) at android@welcu.com.
 
 ## Contributing
 
