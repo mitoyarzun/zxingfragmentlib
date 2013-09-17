@@ -9,7 +9,15 @@ This was also inspired by another similar library, [barcodefragmentlib](https://
 ## Usage
 
 1. Add the library as a module dependency to your app.
-2. Extend the BarCodeScannerFragment class and add a callback somewhere:
+2. Add the following permissions to your AndroidManifest.xml
+```xml
+    <uses-permission android:name="android.permission.CAMERA" />
+ 	<uses-feature android:name="android.hardware.camera" />
+ 	<uses-feature android:name="android.hardware.camera.autofocus" />
+ 	<uses-feature android:name="android.hardware.camera.flash" />
+```
+
+3. Extend the BarCodeScannerFragment class and add a callback somewhere:
 
     ```java
     this.setmCallBack(new BarCodeScannerFragment.IResultCallback() {
@@ -19,14 +27,24 @@ This was also inspired by another similar library, [barcodefragmentlib](https://
         }
     });
     ```
-3. Look a the included sample for better reference.
+4. Enjoy!
 
-## Collaboration
+A sample activity is included, look at SampleActivity.java, SampleFragment.java and sample_activity.xml to get an idea.
 
-Any code improvements are appreciated, just submit a pull request.
+If you have any questions contact me (Jaime) at android@welcu.com.
+
+## Contributing
+
+Any code improvements and bug reports are appreciated, just submit a pull request or open an issue.
 
 ## TODO
 
 * Add a LICENSE file (Apache 2.0 ?)
 * Remove unused XMLs
 * Remove PreferencesActivity
+* Add a gradle build file
+
+## Author
+
+Jaime Oyarzun <jaime@welcu.com>
+
