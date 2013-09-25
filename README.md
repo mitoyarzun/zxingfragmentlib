@@ -43,6 +43,8 @@ Any code improvements and bug reports are appreciated, just submit a pull reques
 * Remove unused XMLs
 * Remove PreferencesActivity
 * Add a gradle build file
+* Add front-camera selector
+* Add compiler jar/aar file.
 
 ## Author
 
