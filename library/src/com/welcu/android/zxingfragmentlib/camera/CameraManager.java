@@ -43,8 +43,8 @@ public final class CameraManager {
 
   private static final int MIN_FRAME_WIDTH = 240;
   private static final int MIN_FRAME_HEIGHT = 240;
-  private static final int MAX_FRAME_WIDTH = 960; // = 1920/2
-  private static final int MAX_FRAME_HEIGHT = 540; // = 1080/2
+  private static final int MAX_FRAME_WIDTH = 540;
+  private static final int MAX_FRAME_HEIGHT = 540;
 
   private final Context context;
   private final View view;
@@ -311,8 +311,22 @@ public final class CameraManager {
     if (rect == null) {
       return null;
     }
+    
+    // decode assumes landscape - rotate preview frame if portrait
+    if (view.getWidth() < view.getHeight()) {
+        Log.d(TAG, "rotating: width="+height+" height="+width);
+        byte[] rotatedData = new byte[data.length];
+    	for (int y = 0; y < height; y++) {
+    		for (int x = 0; x < width; x++)
+    			rotatedData[x * height + height - y - 1] = data[x + y * width];
+        }
+        return new PlanarYUVLuminanceSource(rotatedData, height, width, rect.top, rect.left, rect.height(), rect.width(), false);
+    } else {
+      return new PlanarYUVLuminanceSource(data, width, height, rect.left, rect.top, rect.width(), rect.height(), false);
+    }
+
     // Go ahead and assume it's YUV rather than die.
-    return new PlanarYUVLuminanceSource(data, width, height, rect.left, rect.top, rect.width(), rect.height(), false);
+//    return new PlanarYUVLuminanceSource(data, width, height, rect.left, rect.top, rect.width(), rect.height(), false);
   }
 
 }

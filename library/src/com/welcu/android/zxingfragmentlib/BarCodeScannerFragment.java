@@ -280,6 +280,13 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
 
         restartPreviewAfterDelay(500L);
     }
+    
+    private boolean isPortrait() {
+    	if (getView().getWidth() < getView().getHeight()) 
+    		return true;
+    	else
+    		return false;
+    }
 
     /**
      * Superimpose a line for 1D or dots for 2D to highlight the key features of the barcode.
@@ -294,6 +301,7 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
             Canvas canvas = new Canvas(barcode);
             Paint paint = new Paint();
             paint.setColor(getResources().getColor(R.color.result_points));
+            
             if (points.length == 2) {
                 paint.setStrokeWidth(4.0f);
                 drawLine(canvas, paint, points[0], points[1], scaleFactor);
@@ -308,6 +316,11 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
                 for (ResultPoint point : points) {
                     canvas.drawPoint(scaleFactor * point.getX(), scaleFactor * point.getY(), paint);
                 }
+            }
+            
+            if (isPortrait()) {
+            	Log.d(TAG, "rotating results canvas");
+            	canvas.rotate(90);
             }
         }
     }
