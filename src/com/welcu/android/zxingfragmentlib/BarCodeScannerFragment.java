@@ -70,7 +70,7 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
     private Result lastResult;
     private boolean hasSurface;
     private Collection<BarcodeFormat> decodeFormats;
-    private Map<DecodeHintType,?> decodeHints;
+    private Map<DecodeHintType, ?> decodeHints;
     private String characterSet;
     private InactivityTimer inactivityTimer;
     private BeepManager beepManager;
@@ -115,6 +115,25 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
     public void onResume() {
         super.onResume();
 
+        startScan();
+    }
+
+    @Override
+    public void onPause() {
+        stopScan();
+
+        super.onPause();
+    }
+
+    /**
+     * Initializes the camera and viewfinderView.
+     */
+    public void startScan() {
+        if (cameraManager != null) {
+            Log.e(TAG, "startScan: scan already started.");
+            return;
+        }
+
         // CameraManager must be initialized here, not in onCreate(). This is necessary because we don't
         // want to open the camera driver and measure the screen size if we're going to show the help on
         // first launch. That led to bugs where the scanning rectangle was the wrong size and partially
@@ -148,11 +167,14 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
 
         decodeFormats = null;
         characterSet = null;
-
     }
 
-    @Override
-    public void onPause() {
+    public void stopScan() {
+        if (cameraManager == null) {
+            Log.e(TAG, "stopScan: scan already stopped");
+            return;
+        }
+
         if (handler != null) {
             handler.quitSynchronously();
             handler = null;
@@ -160,12 +182,13 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
         inactivityTimer.onPause();
         ambientLightManager.stop();
         cameraManager.closeDriver();
+        cameraManager = null;
+
         if (!hasSurface) {
             SurfaceView surfaceView = (SurfaceView) getView().findViewById(R.id.preview_view);
             SurfaceHolder surfaceHolder = surfaceView.getHolder();
             surfaceHolder.removeCallback(this);
         }
-        super.onPause();
     }
 
     @Override
@@ -174,7 +197,7 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
         super.onDestroy();
     }
 
-//    @Override
+    //    @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         switch (keyCode) {
             case KeyEvent.KEYCODE_FOCUS:
@@ -240,9 +263,9 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
     /**
      * A valid barcode has been found, so give an indication of success and show the results.
      *
-     * @param rawResult The contents of the barcode.
+     * @param rawResult   The contents of the barcode.
      * @param scaleFactor amount by which thumbnail was scaled
-     * @param barcode   A greyscale bitmap of the camera data which was decoded.
+     * @param barcode     A greyscale bitmap of the camera data which was decoded.
      */
     public void handleDecode(Result rawResult, Bitmap barcode, float scaleFactor) {
         inactivityTimer.onActivity();
@@ -251,7 +274,7 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
         beepManager.playBeepSoundAndVibrate();
         drawResultPoints(barcode, scaleFactor, rawResult);
 
-        if (mCallBack!=null) {
+        if (mCallBack != null) {
             mCallBack.result(rawResult);
         }
 
@@ -261,9 +284,9 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
     /**
      * Superimpose a line for 1D or dots for 2D to highlight the key features of the barcode.
      *
-     * @param barcode   A bitmap of the captured image.
+     * @param barcode     A bitmap of the captured image.
      * @param scaleFactor amount by which thumbnail was scaled
-     * @param rawResult The decoded results which contains the points to draw.
+     * @param rawResult   The decoded results which contains the points to draw.
      */
     private void drawResultPoints(Bitmap barcode, float scaleFactor, Result rawResult) {
         ResultPoint[] points = rawResult.getResultPoints();
