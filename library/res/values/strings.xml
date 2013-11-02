@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Zxing Fragment</string>
     <string name="action_settings">Settings</string>
-    <string name="hello_world">Hello world!</string>
     <string name="preferences_actions_title">When a barcode is found\u2026</string>
     <string name="preferences_auto_focus_title">Use auto focus</string>
     <string name="preferences_bulk_mode_summary">Scan and save many barcodes continuously</string>
