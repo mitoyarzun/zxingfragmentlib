@@ -6,6 +6,15 @@ Most of the code was taken from the official [ZXing repository](https://code.goo
 
 This was also inspired by another similar library, [barcodefragmentlib](https://code.google.com/p/barcodefragmentlib/).
 
+## Goals
+
+Here are the basic guidelines for this project. As always, suggestions are appreciated :)
+
+* Provide a simple library to scan codes using ZXing's core library.
+* Be compatible with Android 2.1 and up.
+* Work out of the box (or almost).
+* Facilitate customization and/or configuration.
+
 ## Usage
 
 1. Add the library as a module dependency to your app.
