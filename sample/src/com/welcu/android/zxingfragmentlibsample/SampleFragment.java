@@ -1,12 +1,10 @@
-package com.welcu.android.zxingfragmentlib;
+package com.welcu.android.zxingfragmentlibsample;
 
-import android.app.Activity;
-import android.content.Context;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
 import android.widget.Toast;
 
 import com.google.zxing.Result;
+import com.welcu.android.zxingfragmentlib.BarCodeScannerFragment;
 
 /**
  * Created by mito on 9/17/13.
@@ -19,8 +17,12 @@ public class SampleFragment extends BarCodeScannerFragment {
         this.setmCallBack(new IResultCallback() {
             @Override
             public void result(Result lastResult) {
-                Toast.makeText(getActivity(), "Scan: " + lastResult.toString(), Toast.LENGTH_LONG).show();
+                Toast.makeText(getActivity(), "Scan: " + lastResult.toString(), Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    public SampleFragment() {
+
     }
 }

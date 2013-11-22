@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.welcu.android.zxingfragmentlib"
+    package="com.welcu.android.zxingfragmentlibsample"
     android:versionCode="1"
     android:versionName="1.0" >
 
@@ -12,12 +12,11 @@
     <uses-feature android:name="android.hardware.camera.flash" />
 
     <application>
-        <activity android:name=".SampleActivity" android:theme="@style/AppTheme">
+        <activity android:name="com.welcu.android.zxingfragmentlibsample.SampleActivity" android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".SampleFragment" />
     </application>
 </manifest>

@@ -9,7 +9,7 @@
     <fragment
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:name="com.welcu.android.zxingfragmentlib.SampleFragment"
+            android:name="com.welcu.android.zxingfragmentlibsample.SampleFragment"
             android:id="@+id/fragment"
             android:layout_gravity="center"
             tools:layout="@layout/capture"/>
