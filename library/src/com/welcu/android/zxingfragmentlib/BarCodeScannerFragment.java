@@ -191,6 +191,20 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
         }
     }
 
+    public void setTorch(boolean state) {
+      if (cameraManager!=null) {
+        cameraManager.setTorch(state);
+      }
+    }
+
+    public void setTorchOn() {
+      setTorch(true);
+    }
+
+    public void setTorchOff() {
+      setTorch(false);
+    }
+
     @Override
     public void onDestroy() {
         inactivityTimer.shutdown();
@@ -206,10 +220,11 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
                 return true;
             // Use volume up/down to turn on light
             case KeyEvent.KEYCODE_VOLUME_DOWN:
-                cameraManager.setTorch(false);
+//                cameraManager.setTorch(false);
+                setTorchOff();
                 return true;
             case KeyEvent.KEYCODE_VOLUME_UP:
-                cameraManager.setTorch(true);
+                setTorchOn();
                 return true;
         }
         return false; //super.onKeyDown(keyCode, event);
