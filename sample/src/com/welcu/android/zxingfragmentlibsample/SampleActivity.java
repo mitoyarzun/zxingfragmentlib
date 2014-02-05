@@ -20,7 +20,7 @@ public class SampleActivity extends FragmentActivity {
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(com.welcu.android.zxingfragmentlibsample.R.layout.sample_activity);
+        setContentView(com.welcu.android.zxingfragmentlibsample.R.layout.activity_sample);
 
         FragmentManager fm = getSupportFragmentManager();
         mScannerFragment = (BarCodeScannerFragment) fm.findFragmentById(R.id.scanner_fragment);
