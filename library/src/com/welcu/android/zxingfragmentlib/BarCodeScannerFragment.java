@@ -4,6 +4,7 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -76,6 +77,7 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
     private BeepManager beepManager;
     private AmbientLightManager ambientLightManager;
     private IResultCallback mCallBack;
+    private Rect customFramingRect;
 
     ViewfinderView getViewfinderView() {
         return viewfinderView;
@@ -156,6 +158,10 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
             // Install the callback and wait for surfaceCreated() to init the camera.
             surfaceHolder.addCallback(this);
             surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        }
+
+        if (customFramingRect!=null) {
+          cameraManager.setManualFramingRect(customFramingRect);
         }
 
         beepManager.updatePrefs();
@@ -271,6 +277,17 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
         this.mCallBack = mCallBack;
     }
 
+    public void setFramingRect(int width, int height, int left, int top) {
+      setFramingRect(new Rect(left, top, left + width, top + height));
+    }
+
+    public void setFramingRect(Rect rect) {
+      this.customFramingRect = rect;
+      if (cameraManager!=null) {
+        cameraManager.setManualFramingRect(rect);
+      }
+    }
+
     public interface IResultCallback {
         void result(Result lastResult);
     }
@@ -381,6 +398,7 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
             // java.?lang.?RuntimeException: Fail to connect to camera service
             Log.w(TAG, "Unexpected error initializing camera", e);
         }
+
     }
 
     public void restartPreviewAfterDelay(long delayMS) {
