@@ -139,7 +139,7 @@ final class CameraConfigurationManager {
 
   private void setOrientation(Camera camera, Camera.Parameters parameters) {
       if (view.getWidth() < view.getHeight()){
-          if (Build.VERSION.SDK_INT==7) {
+          if (Build.VERSION.SDK_INT<=7) {
               parameters.set("orientation", "portrait");
               parameters.setRotation(90);
           } else {
