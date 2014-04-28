@@ -16,6 +16,7 @@
 
 package com.welcu.android.zxingfragmentlib.camera;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Point;
@@ -140,12 +141,21 @@ final class CameraConfigurationManager {
   private void setOrientation(Camera camera, Camera.Parameters parameters) {
       if (view.getWidth() < view.getHeight()){
           if (Build.VERSION.SDK_INT<=7) {
-              parameters.set("orientation", "portrait");
-              parameters.setRotation(90);
+              setOrientationBefore8(parameters);
           } else {
-              camera.setDisplayOrientation(90);
+              setOrientation8(camera);
           }
       }
+  }
+
+  private void setOrientationBefore8(Camera.Parameters parameters) {
+      parameters.set("orientation", "portrait");
+      parameters.setRotation(90);
+  }
+
+  @TargetApi(Build.VERSION_CODES.FROYO)
+  private void setOrientation8(Camera camera) {
+      camera.setDisplayOrientation(90);
   }
 
   Point getCameraResolution() {
