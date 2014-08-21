@@ -53,7 +53,6 @@ final class CameraConfigurationManager {
     Point theScreenResolution = new Point();
     display.getSize(theScreenResolution);
     if (theScreenResolution.x < theScreenResolution.y) {
-//      theScreenResolution = new Point(theScreenResolution.y, theScreenResolution.x);
       camera.setDisplayOrientation(90);
     }
     screenResolution = theScreenResolution;
