@@ -16,12 +16,16 @@
 
 package com.google.zxing.client.android.camera;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.Camera;
 import android.os.Handler;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import com.google.zxing.PlanarYUVLuminanceSource;
 import com.google.zxing.client.android.camera.open.OpenCameraInterface;
@@ -66,7 +70,9 @@ public final class CameraManager {
     this.configManager = new CameraConfigurationManager(context);
     previewCallback = new PreviewCallback(configManager);
   }
-  
+
+
+
   /**
    * Opens the camera driver and initializes the hardware parameters.
    *
@@ -169,11 +175,6 @@ public final class CameraManager {
     }
   }
 
-  /**
-   * Convenience method for {@link com.google.zxing.client.android.CaptureActivity}
-   *
-   * @param newSetting if {@code true}, light should be turned on if currently off. And vice versa.
-   */
   public synchronized void setTorch(boolean newSetting) {
     if (newSetting != configManager.getTorchState(camera)) {
       if (camera != null) {

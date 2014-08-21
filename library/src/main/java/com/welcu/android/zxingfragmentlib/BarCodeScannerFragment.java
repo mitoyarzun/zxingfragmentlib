@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -144,7 +145,7 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
       return;
     }
 
-    cameraManager = new CameraManager(getActivity().getApplication());
+    cameraManager = new CameraManager(getActivity());
 
     viewfinderView = (ViewfinderView) getView().findViewById(R.id.viewfinder_view);
     viewfinderView.setCameraManager(cameraManager);
@@ -234,6 +235,7 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
         return ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
     }
   }
+
 
   @Override
   public void onDestroy() {
