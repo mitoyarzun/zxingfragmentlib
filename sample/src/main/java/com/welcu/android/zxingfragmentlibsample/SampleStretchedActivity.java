@@ -60,7 +60,7 @@ public class SampleStretchedActivity extends FragmentActivity {
             (usableHeight - desiredHeight) / 2 + desiredHeight// bottom
         );
         Log.v("RECT", "left: " + framingRect.left + " top: " + framingRect.top + " right: " + framingRect.right + " bottom: " + framingRect.bottom + " activityHeight: " + activityHeight + " activitiWidth: " + activityWidth);
-        mScannerFragment.setFramingRect(framingRect);
+//        mScannerFragment.setFramingRect(framingRect);
       }
     });
 

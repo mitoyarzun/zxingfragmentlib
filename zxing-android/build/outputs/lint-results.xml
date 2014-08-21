@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="4" by="lint 23.0.2">
+
+    <issue
+        id="LocaleFolder"
+        severity="Warning"
+        message="The locale folder &quot;he&quot; should be called &quot;iw&quot; instead; see the java.util.Locale documentation"
+        category="Correctness"
+        priority="6"
+        summary="Using the new locale name"
+        explanation="From the `java.util.Locale` documentation:
+&quot;Note that Java uses several deprecated two-letter codes. The Hebrew (&quot;he&quot;) language code is rewritten as &quot;iw&quot;, Indonesian (&quot;id&quot;) as &quot;in&quot;, and Yiddish (&quot;yi&quot;) as &quot;ji&quot;. This rewriting happens even if you construct your own Locale object, not just for instances returned by the various lookup methods.
+
+Because of this, if you add your localized resources in for example `values-he` they will not be used, since the system will look for `values-iw` instead.
+
+To work around this, place your resources in a `values` folder using the deprecated language code instead."
+        url="http://developer.android.com/reference/java/util/Locale.html"
+        urls="http://developer.android.com/reference/java/util/Locale.html">
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-he"/>
+    </issue>
+
+    <issue
+        id="LocaleFolder"
+        severity="Warning"
+        message="The locale folder &quot;id&quot; should be called &quot;in&quot; instead; see the java.util.Locale documentation"
+        category="Correctness"
+        priority="6"
+        summary="Using the new locale name"
+        explanation="From the `java.util.Locale` documentation:
+&quot;Note that Java uses several deprecated two-letter codes. The Hebrew (&quot;he&quot;) language code is rewritten as &quot;iw&quot;, Indonesian (&quot;id&quot;) as &quot;in&quot;, and Yiddish (&quot;yi&quot;) as &quot;ji&quot;. This rewriting happens even if you construct your own Locale object, not just for instances returned by the various lookup methods.
+
+Because of this, if you add your localized resources in for example `values-he` they will not be used, since the system will look for `values-iw` instead.
+
+To work around this, place your resources in a `values` folder using the deprecated language code instead."
+        url="http://developer.android.com/reference/java/util/Locale.html"
+        urls="http://developer.android.com/reference/java/util/Locale.html">
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-id"/>
+    </issue>
+
+    <issue
+        id="OldTargetApi"
+        severity="Warning"
+        message="Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the android.os.Build.VERSION_CODES javadoc for details."
+        category="Correctness"
+        priority="6"
+        summary="Checks that the manifest specifies a targetSdkVersion that is recent"
+        explanation="When your application runs on a version of Android that is more recent than your `targetSdkVersion` specifies that it has been tested with, various compatibility modes kick in. This ensures that your application continues to work, but it may look out of place. For example, if the `targetSdkVersion` is less than 14, your app may get an option button in the UI.
+
+To fix this issue, set the `targetSdkVersion` to the highest available value. Then test your app to make sure everything works correctly. You may want to consult the compatibility notes to see what changes apply to each version you are adding support for: http://developer.android.com/reference/android/os/Build.VERSION_CODES.html"
+        url="http://developer.android.com/reference/android/os/Build.VERSION_CODES.html"
+        urls="http://developer.android.com/reference/android/os/Build.VERSION_CODES.html"
+        errorLine1="  &lt;uses-sdk android:minSdkVersion=&quot;15&quot; android:targetSdkVersion=&quot;19&quot;/>"
+        errorLine2="  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/AndroidManifest.xml"
+            line="33"
+            column="3"/>
+    </issue>
+
+    <issue
+        id="OldTargetApi"
+        severity="Warning"
+        message="Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the android.os.Build.VERSION_CODES javadoc for details."
+        category="Correctness"
+        priority="6"
+        summary="Checks that the manifest specifies a targetSdkVersion that is recent"
+        explanation="When your application runs on a version of Android that is more recent than your `targetSdkVersion` specifies that it has been tested with, various compatibility modes kick in. This ensures that your application continues to work, but it may look out of place. For example, if the `targetSdkVersion` is less than 14, your app may get an option button in the UI.
+
+To fix this issue, set the `targetSdkVersion` to the highest available value. Then test your app to make sure everything works correctly. You may want to consult the compatibility notes to see what changes apply to each version you are adding support for: http://developer.android.com/reference/android/os/Build.VERSION_CODES.html"
+        url="http://developer.android.com/reference/android/os/Build.VERSION_CODES.html"
+        urls="http://developer.android.com/reference/android/os/Build.VERSION_CODES.html"
+        errorLine1="        targetSdkVersion 19"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/build.gradle"
+            line="9"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="GradleOverrides"
+        severity="Warning"
+        message="This minSdkVersion value (15) is not used; it is always overridden by the value specified in the Gradle build script (15)"
+        category="Correctness"
+        priority="4"
+        summary="Looks for values specified in the manifest file which are overridden by values in Gradle"
+        explanation="The value of (for example) `minSdkVersion` is only used if it is not specified in the `build.gradle` build scripts. When specified in the Gradle build scripts, the manifest value is ignored and can be misleading, so should be removed to avoid ambiguity."
+        errorLine1="  &lt;uses-sdk android:minSdkVersion=&quot;15&quot; android:targetSdkVersion=&quot;19&quot;/>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/AndroidManifest.xml"
+            line="33"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="GradleOverrides"
+        severity="Warning"
+        message="This targetSdkVersion value (19) is not used; it is always overridden by the value specified in the Gradle build script (19)"
+        category="Correctness"
+        priority="4"
+        summary="Looks for values specified in the manifest file which are overridden by values in Gradle"
+        explanation="The value of (for example) `minSdkVersion` is only used if it is not specified in the `build.gradle` build scripts. When specified in the Gradle build scripts, the manifest value is ignored and can be misleading, so should be removed to avoid ambiguity."
+        errorLine1="  &lt;uses-sdk android:minSdkVersion=&quot;15&quot; android:targetSdkVersion=&quot;19&quot;/>"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/AndroidManifest.xml"
+            line="33"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="InefficientWeight"
+        severity="Warning"
+        message="Use a layout_height of 0dp instead of wrap_content for better performance"
+        category="Performance"
+        priority="3"
+        summary="Looks for inefficient weight declarations in LinearLayouts"
+        explanation="When only a single widget in a LinearLayout defines a weight, it is more efficient to assign a width/height of `0dp` to it since it will absorb all the remaining space anyway. With a declared width/height of `0dp` it does not have to measure its own size first."
+        errorLine1="        android:layout_height=&quot;wrap_content&quot;"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+        quickfix="adt">
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/layout-ldpi/capture.xml"
+            line="40"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        severity="Warning"
+        message="The resource R.raw.beep appears to be unused"
+        category="Performance"
+        priority="3"
+        summary="Looks for unused resources"
+        explanation="Unused resources make applications larger and slow down builds.">
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/raw/beep.ogg"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        severity="Warning"
+        message="The resource R.string.result_email_address appears to be unused"
+        category="Performance"
+        priority="3"
+        summary="Looks for unused resources"
+        explanation="Unused resources make applications larger and slow down builds."
+        errorLine1="  &lt;string name=&quot;result_email_address&quot;>Found email address&lt;/string>"
+        errorLine2="          ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-ar/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-bg/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-ca/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-cs/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-da/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-de/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-el/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-es/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-eu/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-fi/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-fr/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-he/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-hi/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-hu/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-id/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-it/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-iw/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-ja/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-ko/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-nl/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-pl/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-pt/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-ro/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-ru/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-sk/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-sl/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-sv/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-th/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-tr/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-uk/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-zh-rCN/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-zh-rHK/strings.xml"
+            line="130"
+            column="11"/>
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/values-zh-rTW/strings.xml"
+            line="130"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="IconLocation"
+        severity="Warning"
+        message="Found bitmap drawable res/drawable/launcher_icon.png in densityless folder"
+        category="Usability:Icons"
+        priority="5"
+        summary="Ensures that images are not defined in the density-independent drawable folder"
+        explanation="The res/drawable folder is intended for density-independent graphics such as shapes defined in XML. For bitmaps, move it to `drawable-mdpi` and consider providing higher and lower resolution versions in `drawable-ldpi`, `drawable-hdpi` and `drawable-xhdpi`. If the icon *really* is density independent (for example a solid color) you can place it in `drawable-nodpi`."
+        url="http://developer.android.com/guide/practices/screens_support.html"
+        urls="http://developer.android.com/guide/practices/screens_support.html">
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/drawable/launcher_icon.png"/>
+    </issue>
+
+    <issue
+        id="IconLocation"
+        severity="Warning"
+        message="Found bitmap drawable res/drawable/share_via_barcode.png in densityless folder"
+        category="Usability:Icons"
+        priority="5"
+        summary="Ensures that images are not defined in the density-independent drawable folder"
+        explanation="The res/drawable folder is intended for density-independent graphics such as shapes defined in XML. For bitmaps, move it to `drawable-mdpi` and consider providing higher and lower resolution versions in `drawable-ldpi`, `drawable-hdpi` and `drawable-xhdpi`. If the icon *really* is density independent (for example a solid color) you can place it in `drawable-nodpi`."
+        url="http://developer.android.com/guide/practices/screens_support.html"
+        urls="http://developer.android.com/guide/practices/screens_support.html">
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/drawable/share_via_barcode.png"/>
+    </issue>
+
+    <issue
+        id="IconMissingDensityFolder"
+        severity="Warning"
+        message="Missing density variation folders in src/main/res: drawable-mdpi"
+        category="Usability:Icons"
+        priority="3"
+        summary="Ensures that all the density folders are present"
+        explanation="Icons will look best if a custom version is provided for each of the major screen density classes (low, medium, high, extra high). This lint check identifies folders which are missing, such as `drawable-hdpi`.
+Low density is not really used much anymore, so this check ignores the ldpi density. To force lint to include it, set the environment variable `ANDROID_LINT_INCLUDE_LDPI=true`. For more information on current density usage, see http://developer.android.com/resources/dashboard/screens.html"
+        url="http://developer.android.com/guide/practices/screens_support.html"
+        urls="http://developer.android.com/guide/practices/screens_support.html">
+        <location
+            file="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res"/>
+    </issue>
+
+</issues>

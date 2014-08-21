@@ -1,10 +1,12 @@
 package com.welcu.android.zxingfragmentlib;
 
+import android.annotation.TargetApi;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Rect;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -13,6 +15,7 @@ import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -24,7 +27,13 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.DecodeHintType;
 import com.google.zxing.Result;
 import com.google.zxing.ResultPoint;
-import com.welcu.android.zxingfragmentlib.camera.CameraManager;
+import com.google.zxing.client.android.AmbientLightManager;
+import com.google.zxing.client.android.BeepManager;
+import com.google.zxing.client.android.InactivityTimer;
+import com.google.zxing.client.android.PreferencesActivity;
+import com.google.zxing.client.android.ScanFromWebPageManager;
+import com.google.zxing.client.android.ViewfinderView;
+import com.google.zxing.client.android.camera.CameraManager;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -55,359 +64,1163 @@ import java.util.Map;
  * @author dswitkin@google.com (Daniel Switkin)
  * @author Sean Owen
  */
-public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Callback, IConstants {
+public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Callback {
 
-    private static final String TAG = BarCodeScannerFragment.class.getSimpleName();
+  private static final String TAG = BarCodeScannerFragment.class.getSimpleName();
 
-    private static final long DEFAULT_INTENT_RESULT_DURATION_MS = 1500L;
-    private static final long BULK_MODE_SCAN_DELAY_MS = 1000L;
+  private static final long DEFAULT_INTENT_RESULT_DURATION_MS = 1500L;
+  private CameraManager cameraManager;
+  private Result savedResultToShow;
+  private ViewfinderView viewfinderView;
+  private BarCodeScannerHandler handler;
+//  private TextView statusView;
+//  private View resultView;
+  private Result lastResult;
+  private boolean hasSurface;
+  private boolean copyToClipboard;
+  private ScanFromWebPageManager scanFromWebPageManager;
+  private Collection<BarcodeFormat> decodeFormats;
+  private Map<DecodeHintType,?> decodeHints;
+  private String characterSet;
+  private InactivityTimer inactivityTimer;
+  private BeepManager beepManager;
+  private AmbientLightManager ambientLightManager;
+  private IResultCallback mCallBack;
 
-    public static final int HISTORY_REQUEST_CODE = 0x0000bacc;
+  public interface IResultCallback {
+    void result(Result lastResult);
+  }
 
-    private CameraManager cameraManager;
-    private BarCodeScannerHandler handler;
-    private Result savedResultToShow;
-    private ViewfinderView viewfinderView;
-    private Result lastResult;
-    private boolean hasSurface;
-    private Collection<BarcodeFormat> decodeFormats;
-    private Map<DecodeHintType, ?> decodeHints;
-    private String characterSet;
-    private InactivityTimer inactivityTimer;
-    private BeepManager beepManager;
-    private AmbientLightManager ambientLightManager;
-    private IResultCallback mCallBack;
-    private Rect customFramingRect;
+  ViewfinderView getViewfinderView() {
+    return viewfinderView;
+  }
 
-    ViewfinderView getViewfinderView() {
-        return viewfinderView;
+  public Handler getHandler() {
+    return handler;
+  }
+
+  CameraManager getCameraManager() {
+    return cameraManager;
+  }
+
+  @Override
+  public void onCreate(Bundle icicle) {
+    super.onCreate(icicle);
+
+//    Window window = getWindow();
+//    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+//    setContentView(R.layout.capture);
+
+    hasSurface = false;
+    inactivityTimer = new InactivityTimer(getActivity());
+    beepManager = new BeepManager(getActivity());
+    ambientLightManager = new AmbientLightManager(getActivity());
+
+    PreferenceManager.setDefaultValues(getActivity(), R.xml.preferences, false);
+  }
+
+  @Override
+  public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstance) {
+    View view = inflater.inflate(R.layout.capture, container, false);
+
+    Window window = getActivity().getWindow();
+    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+    return view;
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+
+    startScan();
+
+//    // CameraManager must be initialized here, not in onCreate(). This is necessary because we don't
+//    // want to open the camera driver and measure the screen size if we're going to show the help on
+//    // first launch. That led to bugs where the scanning rectangle was the wrong size and partially
+//    // off screen.
+//    cameraManager = new CameraManager(getApplication());
+//
+//    viewfinderView = (ViewfinderView) findViewById(R.id.viewfinder_view);
+//    viewfinderView.setCameraManager(cameraManager);
+//
+//    resultView = findViewById(R.id.result_view);
+//    statusView = (TextView) findViewById(R.id.status_view);
+//
+//    handler = null;
+//    lastResult = null;
+//
+//    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+//
+//    if (prefs.getBoolean(PreferencesActivity.KEY_DISABLE_AUTO_ORIENTATION, true)) {
+//      setRequestedOrientation(getCurrentOrientation());
+//    } else {
+//      setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+//    }
+//
+//    resetStatusView();
+//
+//    SurfaceView surfaceView = (SurfaceView) findViewById(R.id.preview_view);
+//    SurfaceHolder surfaceHolder = surfaceView.getHolder();
+//    if (hasSurface) {
+//      // The activity was paused but not stopped, so the surface still exists. Therefore
+//      // surfaceCreated() won't be called, so init the camera here.
+//      initCamera(surfaceHolder);
+//    } else {
+//      // Install the callback and wait for surfaceCreated() to init the camera.
+//      surfaceHolder.addCallback(this);
+//    }
+//
+//    beepManager.updatePrefs();
+//    ambientLightManager.start(cameraManager);
+//
+//    inactivityTimer.onResume();
+//
+//    Intent intent = getIntent();
+//
+//    copyToClipboard = prefs.getBoolean(PreferencesActivity.KEY_COPY_TO_CLIPBOARD, true)
+//            && (intent == null || intent.getBooleanExtra(Intents.Scan.SAVE_HISTORY, true));
+//
+//    source = IntentSource.NONE;
+//    decodeFormats = null;
+//    characterSet = null;
+//
+//    if (intent != null) {
+//
+//      String action = intent.getAction();
+//      String dataString = intent.getDataString();
+//
+//      if (Intents.Scan.ACTION.equals(action)) {
+//
+//        // Scan the formats the intent requested, and return the result to the calling activity.
+//        source = IntentSource.NATIVE_APP_INTENT;
+//        decodeFormats = DecodeFormatManager.parseDecodeFormats(intent);
+//        decodeHints = DecodeHintManager.parseDecodeHints(intent);
+//
+//        if (intent.hasExtra(Intents.Scan.WIDTH) && intent.hasExtra(Intents.Scan.HEIGHT)) {
+//          int width = intent.getIntExtra(Intents.Scan.WIDTH, 0);
+//          int height = intent.getIntExtra(Intents.Scan.HEIGHT, 0);
+//          if (width > 0 && height > 0) {
+//            cameraManager.setManualFramingRect(width, height);
+//          }
+//        }
+//
+//        if (intent.hasExtra(Intents.Scan.CAMERA_ID)) {
+//          int cameraId = intent.getIntExtra(Intents.Scan.CAMERA_ID, -1);
+//          if (cameraId >= 0) {
+//            cameraManager.setManualCameraId(cameraId);
+//          }
+//        }
+//
+//        String customPromptMessage = intent.getStringExtra(Intents.Scan.PROMPT_MESSAGE);
+//        if (customPromptMessage != null) {
+//          statusView.setText(customPromptMessage);
+//        }
+//
+//      } else if (dataString != null &&
+//              dataString.contains("http://www.google") &&
+//              dataString.contains("/m/products/scan")) {
+//
+//        // Scan only products and send the result to mobile Product Search.
+//        source = IntentSource.PRODUCT_SEARCH_LINK;
+//        sourceUrl = dataString;
+//        decodeFormats = DecodeFormatManager.PRODUCT_FORMATS;
+//
+//      } else if (isZXingURL(dataString)) {
+//
+//        // Scan formats requested in query string (all formats if none specified).
+//        // If a return URL is specified, send the results there. Otherwise, handle it ourselves.
+//        source = IntentSource.ZXING_LINK;
+//        sourceUrl = dataString;
+//        Uri inputUri = Uri.parse(dataString);
+//        scanFromWebPageManager = new ScanFromWebPageManager(inputUri);
+//        decodeFormats = DecodeFormatManager.parseDecodeFormats(inputUri);
+//        // Allow a sub-set of the hints to be specified by the caller.
+//        decodeHints = DecodeHintManager.parseDecodeHints(inputUri);
+//
+//      }
+//
+//      characterSet = intent.getStringExtra(Intents.Scan.CHARACTER_SET);
+//
+//    }
+  }
+
+  @Override
+  public void onPause() {
+    stopScan();
+
+    super.onPause();
+  }
+
+  public void startScan() {
+    if (cameraManager != null) {
+      Log.e(TAG, "startScan: scan already started.");
+      return;
     }
 
-    public Handler getHandler() {
-        return handler;
+    cameraManager = new CameraManager(getActivity().getApplication());
+
+    viewfinderView = (ViewfinderView) getView().findViewById(R.id.viewfinder_view);
+    viewfinderView.setCameraManager(cameraManager);
+
+//    resultView = getView().findViewById(R.id.result_view);
+//    statusView = (TextView) getView().findViewById(R.id.status_view);
+
+    handler = null;
+    lastResult = null;
+
+    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+
+    if (prefs.getBoolean(PreferencesActivity.KEY_DISABLE_AUTO_ORIENTATION, true)) {
+      //noinspection ResourceType
+      getActivity().setRequestedOrientation(getCurrentOrientation());
+    } else {
+      getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
     }
 
-    CameraManager getCameraManager() {
-        return cameraManager;
+//    resetStatusView();
+
+    SurfaceView surfaceView = (SurfaceView) getView().findViewById(R.id.preview_view);
+    SurfaceHolder surfaceHolder = surfaceView.getHolder();
+    if (hasSurface) {
+      // The activity was paused but not stopped, so the surface still exists. Therefore
+      // surfaceCreated() won't be called, so init the camera here.
+      initCamera(surfaceHolder);
+    } else {
+      // Install the callback and wait for surfaceCreated() to init the camera.
+      surfaceHolder.addCallback(this);
     }
 
-    @Override
-    public void onCreate(Bundle icicle) {
-        super.onCreate(icicle);
+    beepManager.updatePrefs();
+    ambientLightManager.start(cameraManager);
 
-        hasSurface = false;
-        inactivityTimer = new InactivityTimer(this.getActivity());
-        beepManager = new BeepManager(this.getActivity());
-        ambientLightManager = new AmbientLightManager(this.getActivity());
+    inactivityTimer.onResume();
 
-        PreferenceManager.setDefaultValues(this.getActivity(), R.xml.preferences, false);
+//    Intent intent = getActivity().getIntent();
+
+//    copyToClipboard = prefs.getBoolean(PreferencesActivity.KEY_COPY_TO_CLIPBOARD, true)
+//            && (intent == null || intent.getBooleanExtra(Intents.Scan.SAVE_HISTORY, true));
+
+    decodeFormats = null;
+    characterSet = null;
+
+//    if (intent != null) {
+//
+//      String action = intent.getAction();
+//      String dataString = intent.getDataString();
+//
+//      if (Intents.Scan.ACTION.equals(action)) {
+//
+//        // Scan the formats the intent requested, and return the result to the calling activity.
+//        source = IntentSource.NATIVE_APP_INTENT;
+//        decodeFormats = DecodeFormatManager.parseDecodeFormats(intent);
+//        decodeHints = DecodeHintManager.parseDecodeHints(intent);
+//
+//        if (intent.hasExtra(Intents.Scan.WIDTH) && intent.hasExtra(Intents.Scan.HEIGHT)) {
+//          int width = intent.getIntExtra(Intents.Scan.WIDTH, 0);
+//          int height = intent.getIntExtra(Intents.Scan.HEIGHT, 0);
+//          if (width > 0 && height > 0) {
+//            cameraManager.setManualFramingRect(width, height);
+//          }
+//        }
+//
+//        if (intent.hasExtra(Intents.Scan.CAMERA_ID)) {
+//          int cameraId = intent.getIntExtra(Intents.Scan.CAMERA_ID, -1);
+//          if (cameraId >= 0) {
+//            cameraManager.setManualCameraId(cameraId);
+//          }
+//        }
+//
+//        String customPromptMessage = intent.getStringExtra(Intents.Scan.PROMPT_MESSAGE);
+//        if (customPromptMessage != null) {
+//          statusView.setText(customPromptMessage);
+//        }
+//
+//      } else if (dataString != null &&
+//              dataString.contains("http://www.google") &&
+//              dataString.contains("/m/products/scan")) {
+//
+//        // Scan only products and send the result to mobile Product Search.
+//        source = IntentSource.PRODUCT_SEARCH_LINK;
+//        sourceUrl = dataString;
+//        decodeFormats = DecodeFormatManager.PRODUCT_FORMATS;
+//
+//      } else if (isZXingURL(dataString)) {
+//
+//        // Scan formats requested in query string (all formats if none specified).
+//        // If a return URL is specified, send the results there. Otherwise, handle it ourselves.
+//        source = IntentSource.ZXING_LINK;
+//        sourceUrl = dataString;
+//        Uri inputUri = Uri.parse(dataString);
+//        scanFromWebPageManager = new ScanFromWebPageManager(inputUri);
+//        decodeFormats = DecodeFormatManager.parseDecodeFormats(inputUri);
+//        // Allow a sub-set of the hints to be specified by the caller.
+//        decodeHints = DecodeHintManager.parseDecodeHints(inputUri);
+//
+//      }
+//
+//      characterSet = intent.getStringExtra(Intents.Scan.CHARACTER_SET);
+//
+//    }
+  }
+
+  public void stopScan() {
+    if (cameraManager == null) {
+      Log.e(TAG, "stopScan: scan already stopped");
+      return;
     }
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstance) {
-        View view = inflater.inflate(R.layout.capture, container, false);
-
-        Window window = getActivity().getWindow();
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        return view;
+    if (handler != null) {
+      handler.quitSynchronously();
+      handler = null;
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
+    inactivityTimer.onPause();
+    ambientLightManager.stop();
+    beepManager.close();
+    cameraManager.closeDriver();
+    cameraManager = null;
 
-        startScan();
+    if (!hasSurface) {
+      SurfaceView surfaceView = (SurfaceView) getView().findViewById(R.id.preview_view);
+      SurfaceHolder surfaceHolder = surfaceView.getHolder();
+      surfaceHolder.removeCallback(this);
     }
+  }
 
-    @Override
-    public void onPause() {
-        stopScan();
-
-        super.onPause();
+  public void setTorch(boolean state) {
+    if (cameraManager!=null) {
+      cameraManager.setTorch(state);
     }
+  }
 
-    /**
-     * Initializes the camera and viewfinderView.
-     */
-    public void startScan() {
-        if (cameraManager != null) {
-            Log.e(TAG, "startScan: scan already started.");
-            return;
+  public void setTorchOn() {
+    setTorch(true);
+  }
+
+  public void setTorchOff() {
+    setTorch(false);
+  }
+
+  public void setmCallBack(IResultCallback mCallBack) {
+    this.mCallBack = mCallBack;
+  }
+
+  @TargetApi(Build.VERSION_CODES.FROYO)
+  private int getCurrentOrientation() {
+    int rotation = getActivity().getWindowManager().getDefaultDisplay().getRotation();
+    switch (rotation) {
+      case Surface.ROTATION_0:
+      case Surface.ROTATION_90:
+        return ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+      default:
+        return ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+    }
+  }
+
+//  private static boolean isZXingURL(String dataString) {
+//    if (dataString == null) {
+//      return false;
+//    }
+//    for (String url : ZXING_URLS) {
+//      if (dataString.startsWith(url)) {
+//        return true;
+//      }
+//    }
+//    return false;
+//  }
+//
+//  @Override
+//  protected void onPause() {
+//    if (handler != null) {
+//      handler.quitSynchronously();
+//      handler = null;
+//    }
+//    inactivityTimer.onPause();
+//    ambientLightManager.stop();
+//    beepManager.close();
+//    cameraManager.closeDriver();
+//    if (!hasSurface) {
+//      SurfaceView surfaceView = (SurfaceView) findViewById(R.id.preview_view);
+//      SurfaceHolder surfaceHolder = surfaceView.getHolder();
+//      surfaceHolder.removeCallback(this);
+//    }
+//    super.onPause();
+//  }
+
+  @Override
+  public void onDestroy() {
+    inactivityTimer.shutdown();
+    super.onDestroy();
+  }
+
+  public boolean onKeyDown(int keyCode, KeyEvent event) {
+    switch (keyCode) {
+//      case KeyEvent.KEYCODE_BACK:
+//        if (source == IntentSource.NATIVE_APP_INTENT) {
+//          getActivity().setResult(RESULT_CANCELED);
+//          getActivity().finish();
+//          return true;
+//        }
+//        if ((source == IntentSource.NONE || source == IntentSource.ZXING_LINK) && lastResult != null) {
+//          restartPreviewAfterDelay(0L);
+//          return true;
+//        }
+//        break;
+      case KeyEvent.KEYCODE_FOCUS:
+      case KeyEvent.KEYCODE_CAMERA:
+        // Handle these events so they don't launch the Camera app
+        return true;
+      // Use volume up/down to turn on light
+      case KeyEvent.KEYCODE_VOLUME_DOWN:
+        setTorchOff();
+        return true;
+      case KeyEvent.KEYCODE_VOLUME_UP:
+        setTorchOn();
+        return true;
+    }
+    return false;
+  }
+//
+//  @Override
+//  public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+//    if (resultCode == RESULT_OK) {
+//      if (requestCode == HISTORY_REQUEST_CODE) {
+//        int itemNumber = intent.getIntExtra(Intents.History.ITEM_NUMBER, -1);
+//        if (itemNumber >= 0) {
+//          HistoryItem historyItem = historyManager.buildHistoryItem(itemNumber);
+//          decodeOrStoreSavedBitmap(null, historyItem.getResult());
+//        }
+//      }
+//    }
+//  }
+
+  private void decodeOrStoreSavedBitmap(Bitmap bitmap, Result result) {
+    // Bitmap isn't used yet -- will be used soon
+    if (handler == null) {
+      savedResultToShow = result;
+    } else {
+      if (result != null) {
+        savedResultToShow = result;
+      }
+      if (savedResultToShow != null) {
+        Message message = Message.obtain(handler, IConstants.DECODE_SUCCEDED, savedResultToShow);
+        handler.sendMessage(message);
+      }
+      savedResultToShow = null;
+    }
+  }
+
+  @Override
+  public void surfaceCreated(SurfaceHolder holder) {
+    if (holder == null) {
+      Log.e(TAG, "*** WARNING *** surfaceCreated() gave us a null surface!");
+    }
+    if (!hasSurface) {
+      hasSurface = true;
+      initCamera(holder);
+    }
+  }
+
+  @Override
+  public void surfaceDestroyed(SurfaceHolder holder) {
+    hasSurface = false;
+  }
+
+  @Override
+  public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+  }
+
+  /**
+   * A valid barcode has been found, so give an indication of success and show the results.
+   *
+   * @param rawResult The contents of the barcode.
+   * @param scaleFactor amount by which thumbnail was scaled
+   * @param barcode   A greyscale bitmap of the camera data which was decoded.
+   */
+  public void handleDecode(Result rawResult, Bitmap barcode, float scaleFactor) {
+    inactivityTimer.onActivity();
+    lastResult = rawResult;
+//    ResultHandler resultHandler = ResultHandlerFactory.makeResultHandler(getActivity(), rawResult);
+
+    boolean fromLiveScan = barcode != null;
+    if (fromLiveScan) {
+      beepManager.playBeepSoundAndVibrate();
+      drawResultPoints(barcode, scaleFactor, rawResult);
+      if (mCallBack!=null) {
+        mCallBack.result(rawResult);
+      }
+
+      restartPreviewAfterDelay(500L);
+    }
+//
+//    switch (source) {
+//      case NATIVE_APP_INTENT:
+//      case PRODUCT_SEARCH_LINK:
+//        handleDecodeExternally(rawResult, resultHandler, barcode);
+//        break;
+//      case ZXING_LINK:
+//        if (scanFromWebPageManager == null || !scanFromWebPageManager.isScanFromWebPage()) {
+//          handleDecodeInternally(rawResult, resultHandler, barcode);
+//        } else {
+//          handleDecodeExternally(rawResult, resultHandler, barcode);
+//        }
+//        break;
+//      case NONE:
+//        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+//        if (fromLiveScan && prefs.getBoolean(PreferencesActivity.KEY_BULK_MODE, false)) {
+//          Toast.makeText(getApplicationContext(),
+//                  getResources().getString(R.string.msg_bulk_mode_scanned) + " (" + rawResult.getText() + ')',
+//                  Toast.LENGTH_SHORT).show();
+//          // Wait a moment or else it will scan the same barcode continuously about 3 times
+//          restartPreviewAfterDelay(BULK_MODE_SCAN_DELAY_MS);
+//        } else {
+//          handleDecodeInternally(rawResult, resultHandler, barcode);
+//        }
+//        break;
+//    }
+  }
+
+  /**
+   * Superimpose a line for 1D or dots for 2D to highlight the key features of the barcode.
+   *
+   * @param barcode   A bitmap of the captured image.
+   * @param scaleFactor amount by which thumbnail was scaled
+   * @param rawResult The decoded results which contains the points to draw.
+   */
+  private void drawResultPoints(Bitmap barcode, float scaleFactor, Result rawResult) {
+    ResultPoint[] points = rawResult.getResultPoints();
+    if (points != null && points.length > 0) {
+      Canvas canvas = new Canvas(barcode);
+      Paint paint = new Paint();
+      paint.setColor(getResources().getColor(R.color.result_points));
+      if (points.length == 2) {
+        paint.setStrokeWidth(4.0f);
+        drawLine(canvas, paint, points[0], points[1], scaleFactor);
+      } else if (points.length == 4 &&
+              (rawResult.getBarcodeFormat() == BarcodeFormat.UPC_A ||
+                      rawResult.getBarcodeFormat() == BarcodeFormat.EAN_13)) {
+        // Hacky special case -- draw two lines, for the barcode and metadata
+        drawLine(canvas, paint, points[0], points[1], scaleFactor);
+        drawLine(canvas, paint, points[2], points[3], scaleFactor);
+      } else {
+        paint.setStrokeWidth(10.0f);
+        for (ResultPoint point : points) {
+          if (point != null) {
+            canvas.drawPoint(scaleFactor * point.getX(), scaleFactor * point.getY(), paint);
+          }
         }
-
-        // CameraManager must be initialized here, not in onCreate(). This is necessary because we don't
-        // want to open the camera driver and measure the screen size if we're going to show the help on
-        // first launch. That led to bugs where the scanning rectangle was the wrong size and partially
-        // off screen.
-        cameraManager = new CameraManager(this.getActivity().getApplication(), getView());
-
-        viewfinderView = (ViewfinderView) getView().findViewById(R.id.viewfinder_view);
-        viewfinderView.setCameraManager(cameraManager);
-
-        handler = null;
-        lastResult = null;
-
-        SurfaceView surfaceView = (SurfaceView) getView().findViewById(R.id.preview_view);
-        SurfaceHolder surfaceHolder = surfaceView.getHolder();
-        if (hasSurface) {
-            // The activity was paused but not stopped, so the surface still exists. Therefore
-            // surfaceCreated() won't be called, so init the camera here.
-            initCamera(surfaceHolder);
-        } else {
-            // Install the callback and wait for surfaceCreated() to init the camera.
-            surfaceHolder.addCallback(this);
-            surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-        }
-
-        if (customFramingRect!=null) {
-          cameraManager.setManualFramingRect(customFramingRect);
-        }
-
-        beepManager.updatePrefs();
-        ambientLightManager.start(cameraManager);
-
-        inactivityTimer.onResume();
-
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this.getActivity());
-
-        decodeFormats = null;
-        characterSet = null;
-    }
-
-    public void stopScan() {
-        if (cameraManager == null) {
-            Log.e(TAG, "stopScan: scan already stopped");
-            return;
-        }
-
-        if (handler != null) {
-            handler.quitSynchronously();
-            handler = null;
-        }
-        inactivityTimer.onPause();
-        ambientLightManager.stop();
-        cameraManager.closeDriver();
-        cameraManager = null;
-
-        if (!hasSurface) {
-            SurfaceView surfaceView = (SurfaceView) getView().findViewById(R.id.preview_view);
-            SurfaceHolder surfaceHolder = surfaceView.getHolder();
-            surfaceHolder.removeCallback(this);
-        }
-    }
-
-    public void setTorch(boolean state) {
-      if (cameraManager!=null) {
-        cameraManager.setTorch(state);
       }
     }
+  }
 
-    public void setTorchOn() {
-      setTorch(true);
+  private static void drawLine(Canvas canvas, Paint paint, ResultPoint a, ResultPoint b, float scaleFactor) {
+    if (a != null && b != null) {
+      canvas.drawLine(scaleFactor * a.getX(),
+              scaleFactor * a.getY(),
+              scaleFactor * b.getX(),
+              scaleFactor * b.getY(),
+              paint);
     }
+  }
 
-    public void setTorchOff() {
-      setTorch(false);
+  // Put up our own UI for how to handle the decoded contents.
+//  private void handleDecodeInternally(Result rawResult, ResultHandler resultHandler, Bitmap barcode) {
+//
+//    CharSequence displayContents = resultHandler.getDisplayContents();
+//
+//    if (copyToClipboard && !resultHandler.areContentsSecure()) {
+//      ClipboardInterface.setText(displayContents, this);
+//    }
+//
+//    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+//
+//    if (resultHandler.getDefaultButtonID() != null && prefs.getBoolean(PreferencesActivity.KEY_AUTO_OPEN_WEB, false)) {
+//      resultHandler.handleButtonPress(resultHandler.getDefaultButtonID());
+//      return;
+//    }
+//
+//    statusView.setVisibility(View.GONE);
+//    viewfinderView.setVisibility(View.GONE);
+//    resultView.setVisibility(View.VISIBLE);
+//
+//    ImageView barcodeImageView = (ImageView) findViewById(R.id.barcode_image_view);
+//    if (barcode == null) {
+//      barcodeImageView.setImageBitmap(BitmapFactory.decodeResource(getResources(),
+//              R.drawable.launcher_icon));
+//    } else {
+//      barcodeImageView.setImageBitmap(barcode);
+//    }
+//
+//    TextView formatTextView = (TextView) findViewById(R.id.format_text_view);
+//    formatTextView.setText(rawResult.getBarcodeFormat().toString());
+//
+//    TextView typeTextView = (TextView) findViewById(R.id.type_text_view);
+//    typeTextView.setText(resultHandler.getType().toString());
+//
+//    DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT);
+//    TextView timeTextView = (TextView) findViewById(R.id.time_text_view);
+//    timeTextView.setText(formatter.format(new Date(rawResult.getTimestamp())));
+//
+//
+//    TextView metaTextView = (TextView) findViewById(R.id.meta_text_view);
+//    View metaTextViewLabel = findViewById(R.id.meta_text_view_label);
+//    metaTextView.setVisibility(View.GONE);
+//    metaTextViewLabel.setVisibility(View.GONE);
+//    Map<ResultMetadataType,Object> metadata = rawResult.getResultMetadata();
+//    if (metadata != null) {
+//      StringBuilder metadataText = new StringBuilder(20);
+//      for (Map.Entry<ResultMetadataType,Object> entry : metadata.entrySet()) {
+//        if (DISPLAYABLE_METADATA_TYPES.contains(entry.getKey())) {
+//          metadataText.append(entry.getValue()).append('\n');
+//        }
+//      }
+//      if (metadataText.length() > 0) {
+//        metadataText.setLength(metadataText.length() - 1);
+//        metaTextView.setText(metadataText);
+//        metaTextView.setVisibility(View.VISIBLE);
+//        metaTextViewLabel.setVisibility(View.VISIBLE);
+//      }
+//    }
+//
+//    TextView contentsTextView = (TextView) findViewById(R.id.contents_text_view);
+//    contentsTextView.setText(displayContents);
+//    int scaledSize = Math.max(22, 32 - displayContents.length() / 4);
+//    contentsTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, scaledSize);
+//
+//    TextView supplementTextView = (TextView) findViewById(R.id.contents_supplement_text_view);
+//    supplementTextView.setText("");
+//    supplementTextView.setOnClickListener(null);
+//    if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean(
+//            PreferencesActivity.KEY_SUPPLEMENTAL, true)) {
+//      SupplementalInfoRetriever.maybeInvokeRetrieval(supplementTextView,
+//              resultHandler.getResult(),
+//              historyManager,
+//              this);
+//    }
+//
+//    int buttonCount = resultHandler.getButtonCount();
+//    ViewGroup buttonView = (ViewGroup) findViewById(R.id.result_button_view);
+//    buttonView.requestFocus();
+//    for (int x = 0; x < ResultHandler.MAX_BUTTON_COUNT; x++) {
+//      TextView button = (TextView) buttonView.getChildAt(x);
+//      if (x < buttonCount) {
+//        button.setVisibility(View.VISIBLE);
+//        button.setText(resultHandler.getButtonText(x));
+//        button.setOnClickListener(new ResultButtonListener(resultHandler, x));
+//      } else {
+//        button.setVisibility(View.GONE);
+//      }
+//    }
+//
+//  }
+
+  // Briefly show the contents of the barcode, then handle the result outside Barcode Scanner.
+//  private void handleDecodeExternally(Result rawResult, ResultHandler resultHandler, Bitmap barcode) {
+//
+//    if (barcode != null) {
+//      viewfinderView.drawResultBitmap(barcode);
+//    }
+//
+//    long resultDurationMS;
+//    if (getIntent() == null) {
+//      resultDurationMS = DEFAULT_INTENT_RESULT_DURATION_MS;
+//    } else {
+//      resultDurationMS = getIntent().getLongExtra(Intents.Scan.RESULT_DISPLAY_DURATION_MS,
+//              DEFAULT_INTENT_RESULT_DURATION_MS);
+//    }
+//
+//    if (resultDurationMS > 0) {
+//      String rawResultString = String.valueOf(rawResult);
+//      if (rawResultString.length() > 32) {
+//        rawResultString = rawResultString.substring(0, 32) + " ...";
+//      }
+//      statusView.setText(getString(resultHandler.getDisplayTitle()) + " : " + rawResultString);
+//    }
+//
+//    if (copyToClipboard && !resultHandler.areContentsSecure()) {
+//      CharSequence text = resultHandler.getDisplayContents();
+//      ClipboardInterface.setText(text, this);
+//    }
+//
+//    if (source == IntentSource.NATIVE_APP_INTENT) {
+//
+//      // Hand back whatever action they requested - this can be changed to Intents.Scan.ACTION when
+//      // the deprecated intent is retired.
+//      Intent intent = new Intent(getIntent().getAction());
+//      intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+//      intent.putExtra(Intents.Scan.RESULT, rawResult.toString());
+//      intent.putExtra(Intents.Scan.RESULT_FORMAT, rawResult.getBarcodeFormat().toString());
+//      byte[] rawBytes = rawResult.getRawBytes();
+//      if (rawBytes != null && rawBytes.length > 0) {
+//        intent.putExtra(Intents.Scan.RESULT_BYTES, rawBytes);
+//      }
+//      Map<ResultMetadataType,?> metadata = rawResult.getResultMetadata();
+//      if (metadata != null) {
+//        if (metadata.containsKey(ResultMetadataType.UPC_EAN_EXTENSION)) {
+//          intent.putExtra(Intents.Scan.RESULT_UPC_EAN_EXTENSION,
+//                  metadata.get(ResultMetadataType.UPC_EAN_EXTENSION).toString());
+//        }
+//        Number orientation = (Number) metadata.get(ResultMetadataType.ORIENTATION);
+//        if (orientation != null) {
+//          intent.putExtra(Intents.Scan.RESULT_ORIENTATION, orientation.intValue());
+//        }
+//        String ecLevel = (String) metadata.get(ResultMetadataType.ERROR_CORRECTION_LEVEL);
+//        if (ecLevel != null) {
+//          intent.putExtra(Intents.Scan.RESULT_ERROR_CORRECTION_LEVEL, ecLevel);
+//        }
+//        @SuppressWarnings("unchecked")
+//        Iterable<byte[]> byteSegments = (Iterable<byte[]>) metadata.get(ResultMetadataType.BYTE_SEGMENTS);
+//        if (byteSegments != null) {
+//          int i = 0;
+//          for (byte[] byteSegment : byteSegments) {
+//            intent.putExtra(Intents.Scan.RESULT_BYTE_SEGMENTS_PREFIX + i, byteSegment);
+//            i++;
+//          }
+//        }
+//      }
+//      sendReplyMessage(R.id.return_scan_result, intent, resultDurationMS);
+//
+//    } else if (source == IntentSource.PRODUCT_SEARCH_LINK) {
+//
+//      // Reformulate the URL which triggered us into a query, so that the request goes to the same
+//      // TLD as the scan URL.
+//      int end = sourceUrl.lastIndexOf("/scan");
+//      String replyURL = sourceUrl.substring(0, end) + "?q=" + resultHandler.getDisplayContents() + "&source=zxing";
+//      sendReplyMessage(R.id.launch_product_query, replyURL, resultDurationMS);
+//
+//    } else if (source == IntentSource.ZXING_LINK) {
+//
+//      if (scanFromWebPageManager != null && scanFromWebPageManager.isScanFromWebPage()) {
+//        String replyURL = scanFromWebPageManager.buildReplyURL(rawResult, resultHandler);
+//        sendReplyMessage(R.id.launch_product_query, replyURL, resultDurationMS);
+//      }
+//
+//    }
+//  }
+
+//  private void sendReplyMessage(int id, Object arg, long delayMS) {
+//    if (handler != null) {
+//      Message message = Message.obtain(handler, id, arg);
+//      if (delayMS > 0L) {
+//        handler.sendMessageDelayed(message, delayMS);
+//      } else {
+//        handler.sendMessage(message);
+//      }
+//    }
+//  }
+
+  private void initCamera(SurfaceHolder surfaceHolder) {
+    if (surfaceHolder == null) {
+      throw new IllegalStateException("No SurfaceHolder provided");
     }
-
-    @Override
-    public void onDestroy() {
-        inactivityTimer.shutdown();
-        super.onDestroy();
+    if (cameraManager.isOpen()) {
+      Log.w(TAG, "initCamera() while already open -- late SurfaceView callback?");
+      return;
     }
-
-    //    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_FOCUS:
-            case KeyEvent.KEYCODE_CAMERA:
-                // Handle these events so they don't launch the Camera app
-                return true;
-            // Use volume up/down to turn on light
-            case KeyEvent.KEYCODE_VOLUME_DOWN:
-//                cameraManager.setTorch(false);
-                setTorchOff();
-                return true;
-            case KeyEvent.KEYCODE_VOLUME_UP:
-                setTorchOn();
-                return true;
-        }
-        return false; //super.onKeyDown(keyCode, event);
-    }
-
-    private void decodeOrStoreSavedBitmap(Bitmap bitmap, Result result) {
-        // Bitmap isn't used yet -- will be used soon
-        if (handler == null) {
-            savedResultToShow = result;
-        } else {
-            if (result != null) {
-                savedResultToShow = result;
-            }
-            if (savedResultToShow != null) {
-                Message message = Message.obtain(handler, DECODE_SUCCEDED, savedResultToShow);
-                handler.sendMessage(message);
-            }
-            savedResultToShow = null;
-        }
-    }
-
-    @Override
-    public void surfaceCreated(SurfaceHolder holder) {
-        if (holder == null) {
-            Log.e(TAG, "*** WARNING *** surfaceCreated() gave us a null surface!");
-        }
-        if (!hasSurface) {
-            hasSurface = true;
-            initCamera(holder);
-        }
-    }
-
-    @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
-        hasSurface = false;
-    }
-
-    @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-
-    }
-
-    public void setmCallBack(IResultCallback mCallBack) {
-        this.mCallBack = mCallBack;
-    }
-
-    public void setFramingRect(int width, int height, int left, int top) {
-      setFramingRect(new Rect(left, top, left + width, top + height));
-    }
-
-    public void setFramingRect(Rect rect) {
-      this.customFramingRect = rect;
-      if (cameraManager!=null) {
-        cameraManager.setManualFramingRect(rect);
+    try {
+      cameraManager.openDriver(surfaceHolder);
+      // Creating the handler starts the preview, which can also throw a RuntimeException.
+      if (handler == null) {
+        handler = new BarCodeScannerHandler(this, decodeFormats, decodeHints, characterSet, cameraManager);
       }
+      decodeOrStoreSavedBitmap(null, null);
+    } catch (IOException ioe) {
+      Log.w(TAG, ioe);
+//      displayFrameworkBugMessageAndExit();
+    } catch (RuntimeException e) {
+      // Barcode Scanner has seen crashes in the wild of this variety:
+      // java.?lang.?RuntimeException: Fail to connect to camera service
+      Log.w(TAG, "Unexpected error initializing camera", e);
+//      displayFrameworkBugMessageAndExit();
     }
+  }
 
-    public interface IResultCallback {
-        void result(Result lastResult);
+//  private void displayFrameworkBugMessageAndExit() {
+//    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+//    builder.setTitle(getString(R.string.app_name));
+//    builder.setMessage(getString(R.string.msg_camera_framework_bug));
+//    builder.setPositiveButton(R.string.button_ok, new FinishListener(this));
+//    builder.setOnCancelListener(new FinishListener(this));
+//    builder.show();
+//  }
+
+  public void restartPreviewAfterDelay(long delayMS) {
+    if (handler != null) {
+      handler.sendEmptyMessageDelayed(IConstants.RESTART_PREVIEW, delayMS);
     }
+  }
 
-    /**
-     * A valid barcode has been found, so give an indication of success and show the results.
-     *
-     * @param rawResult   The contents of the barcode.
-     * @param scaleFactor amount by which thumbnail was scaled
-     * @param barcode     A greyscale bitmap of the camera data which was decoded.
-     */
-    public void handleDecode(Result rawResult, Bitmap barcode, float scaleFactor) {
-        inactivityTimer.onActivity();
-        lastResult = rawResult;
-
-        beepManager.playBeepSoundAndVibrate();
-        drawResultPoints(barcode, scaleFactor, rawResult);
-
-        if (mCallBack != null) {
-            mCallBack.result(rawResult);
-        }
-
-        restartPreviewAfterDelay(500L);
-    }
-    
-    private boolean isPortrait() {
-    	if (getView().getWidth() < getView().getHeight()) 
-    		return true;
-    	else
-    		return false;
-    }
-
-    /**
-     * Superimpose a line for 1D or dots for 2D to highlight the key features of the barcode.
-     *
-     * @param barcode     A bitmap of the captured image.
-     * @param scaleFactor amount by which thumbnail was scaled
-     * @param rawResult   The decoded results which contains the points to draw.
-     */
-    private void drawResultPoints(Bitmap barcode, float scaleFactor, Result rawResult) {
-        ResultPoint[] points = rawResult.getResultPoints();
-        if (points != null && points.length > 0 && barcode != null) {
-            Canvas canvas = new Canvas(barcode);
-            Paint paint = new Paint();
-            paint.setColor(getResources().getColor(R.color.result_points));
-            
-            if (points.length == 2) {
-                paint.setStrokeWidth(4.0f);
-                drawLine(canvas, paint, points[0], points[1], scaleFactor);
-            } else if (points.length == 4 &&
-                    (rawResult.getBarcodeFormat() == BarcodeFormat.UPC_A ||
-                            rawResult.getBarcodeFormat() == BarcodeFormat.EAN_13)) {
-                // Hacky special case -- draw two lines, for the barcode and metadata
-                drawLine(canvas, paint, points[0], points[1], scaleFactor);
-                drawLine(canvas, paint, points[2], points[3], scaleFactor);
-            } else {
-                paint.setStrokeWidth(10.0f);
-                for (ResultPoint point : points) {
-                    canvas.drawPoint(scaleFactor * point.getX(), scaleFactor * point.getY(), paint);
-                }
-            }
-            
-            if (isPortrait()) {
-            	Log.d(TAG, "rotating results canvas");
-            	canvas.rotate(90);
-            }
-        }
-    }
-
-    private static void drawLine(Canvas canvas, Paint paint, ResultPoint a, ResultPoint b, float scaleFactor) {
-        if (a != null && b != null) {
-            canvas.drawLine(scaleFactor * a.getX(),
-                    scaleFactor * a.getY(),
-                    scaleFactor * b.getX(),
-                    scaleFactor * b.getY(),
-                    paint);
-        }
-    }
-
-    private void sendReplyMessage(int id, Object arg, long delayMS) {
-        Message message = Message.obtain(handler, id, arg);
-        if (delayMS > 0L) {
-            handler.sendMessageDelayed(message, delayMS);
-        } else {
-            handler.sendMessage(message);
-        }
-    }
-
-    private void initCamera(SurfaceHolder surfaceHolder) {
-        if (surfaceHolder == null) {
-            throw new IllegalStateException("No SurfaceHolder provided");
-        }
-        if (cameraManager.isOpen()) {
-            Log.w(TAG, "initCamera() while already open -- late SurfaceView callback?");
-            return;
-        }
-        try {
-            cameraManager.openDriver(surfaceHolder);
-            // Creating the handler starts the preview, which can also throw a RuntimeException.
-            if (handler == null) {
-                handler = new BarCodeScannerHandler(this, decodeFormats, decodeHints, characterSet, cameraManager);
-            }
-            decodeOrStoreSavedBitmap(null, null);
-        } catch (IOException ioe) {
-            Log.w(TAG, ioe);
-        } catch (RuntimeException e) {
-            // Barcode Scanner has seen crashes in the wild of this variety:
-            // java.?lang.?RuntimeException: Fail to connect to camera service
-            Log.w(TAG, "Unexpected error initializing camera", e);
-        }
-
-    }
-
-    public void restartPreviewAfterDelay(long delayMS) {
-        if (handler != null) {
-            handler.sendEmptyMessageDelayed(RESTART_PREVIEW, delayMS);
-        }
-    }
-
-    public void drawViewfinder() {
-        viewfinderView.drawViewfinder();
-    }
+  public void drawViewfinder() {
+    viewfinderView.drawViewfinder();
+  }
 }
+
+
+
+
+/**
+ * This activity opens the camera and does the actual scanning on a background thread. It draws a
+ * viewfinder to help the user place the barcode correctly, shows feedback as the image processing
+ * is happening, and then overlays the results when a scan is successful.
+ *
+ * @author dswitkin@google.com (Daniel Switkin)
+ * @author Sean Owen
+ */
+//public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Callback, IZXingConstants {
+//
+//    private static final String TAG = BarCodeScannerFragment.class.getSimpleName();
+//
+//    private static final long DEFAULT_INTENT_RESULT_DURATION_MS = 1500L;
+//    private static final long BULK_MODE_SCAN_DELAY_MS = 1000L;
+//
+//    public static final int HISTORY_REQUEST_CODE = 0x0000bacc;
+//
+//    private CameraManager cameraManager;
+//    private BarCodeScannerHandler handler;
+//    private Result savedResultToShow;
+//    private ViewfinderView viewfinderView;
+//    private Result lastResult;
+//    private boolean hasSurface;
+//    private Collection<BarcodeFormat> decodeFormats;
+//    private Map<DecodeHintType, ?> decodeHints;
+//    private String characterSet;
+//    private InactivityTimer inactivityTimer;
+//    private BeepManager beepManager;
+//    private AmbientLightManager ambientLightManager;
+//    private IResultCallback mCallBack;
+//    private Rect customFramingRect;
+//
+//    ViewfinderView getViewfinderView() {
+//        return viewfinderView;
+//    }
+//
+//    public Handler getHandler() {
+//        return handler;
+//    }
+//
+//    CameraManager getCameraManager() {
+//        return cameraManager;
+//    }
+//
+//    @Override
+//    public void onCreate(Bundle icicle) {
+//        super.onCreate(icicle);
+//
+//        hasSurface = false;
+//        inactivityTimer = new InactivityTimer(this.getActivity());
+//        beepManager = new BeepManager(this.getActivity());
+//        ambientLightManager = new AmbientLightManager(this.getActivity());
+//
+//        PreferenceManager.setDefaultValues(this.getActivity(), R.xml.preferences, false);
+//    }
+//
+//    @Override
+//    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstance) {
+//        View view = inflater.inflate(R.layout.capture, container, false);
+//
+//        Window window = getActivity().getWindow();
+//        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+//
+//        return view;
+//    }
+//
+//    @Override
+//    public void onResume() {
+//        super.onResume();
+//
+//        startScan();
+//    }
+//
+//    @Override
+//    public void onPause() {
+//        stopScan();
+//
+//        super.onPause();
+//    }
+//
+//    /**
+//     * Initializes the camera and viewfinderView.
+//     */
+//    public void startScan() {
+//        if (cameraManager != null) {
+//            Log.e(TAG, "startScan: scan already started.");
+//            return;
+//        }
+//
+//        // CameraManager must be initialized here, not in onCreate(). This is necessary because we don't
+//        // want to open the camera driver and measure the screen size if we're going to show the help on
+//        // first launch. That led to bugs where the scanning rectangle was the wrong size and partially
+//        // off screen.
+//        cameraManager = new CameraManager(this.getActivity().getApplication(), getView());
+//
+//        viewfinderView = (ViewfinderView) getView().findViewById(R.id.viewfinder_view);
+//        viewfinderView.setCameraManager(cameraManager);
+//
+//        handler = null;
+//        lastResult = null;
+//
+//        SurfaceView surfaceView = (SurfaceView) getView().findViewById(R.id.preview_view);
+//        SurfaceHolder surfaceHolder = surfaceView.getHolder();
+//        if (hasSurface) {
+//            // The activity was paused but not stopped, so the surface still exists. Therefore
+//            // surfaceCreated() won't be called, so init the camera here.
+//            initCamera(surfaceHolder);
+//        } else {
+//            // Install the callback and wait for surfaceCreated() to init the camera.
+//            surfaceHolder.addCallback(this);
+//            surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+//        }
+//
+//        if (customFramingRect!=null) {
+//          cameraManager.setManualFramingRect(customFramingRect);
+//        }
+//
+//        beepManager.updatePrefs();
+//        ambientLightManager.start(cameraManager);
+//
+//        inactivityTimer.onResume();
+//
+//        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this.getActivity());
+//
+//        decodeFormats = null;
+//        characterSet = null;
+//    }
+//
+//    public void stopScan() {
+//        if (cameraManager == null) {
+//            Log.e(TAG, "stopScan: scan already stopped");
+//            return;
+//        }
+//
+//        if (handler != null) {
+//            handler.quitSynchronously();
+//            handler = null;
+//        }
+//        inactivityTimer.onPause();
+//        ambientLightManager.stop();
+//        cameraManager.closeDriver();
+//        cameraManager = null;
+//
+//        if (!hasSurface) {
+//            SurfaceView surfaceView = (SurfaceView) getView().findViewById(R.id.preview_view);
+//            SurfaceHolder surfaceHolder = surfaceView.getHolder();
+//            surfaceHolder.removeCallback(this);
+//        }
+//    }
+//
+//    public void setTorch(boolean state) {
+//      if (cameraManager!=null) {
+//        cameraManager.setTorch(state);
+//      }
+//    }
+//
+//    public void setTorchOn() {
+//      setTorch(true);
+//    }
+//
+//    public void setTorchOff() {
+//      setTorch(false);
+//    }
+//
+//    @Override
+//    public void onDestroy() {
+//        inactivityTimer.shutdown();
+//        super.onDestroy();
+//    }
+//
+//    //    @Override
+//    public boolean onKeyDown(int keyCode, KeyEvent event) {
+//        switch (keyCode) {
+//            case KeyEvent.KEYCODE_FOCUS:
+//            case KeyEvent.KEYCODE_CAMERA:
+//                // Handle these events so they don't launch the Camera app
+//                return true;
+//            // Use volume up/down to turn on light
+//            case KeyEvent.KEYCODE_VOLUME_DOWN:
+////                cameraManager.setTorch(false);
+//                setTorchOff();
+//                return true;
+//            case KeyEvent.KEYCODE_VOLUME_UP:
+//                setTorchOn();
+//                return true;
+//        }
+//        return false; //super.onKeyDown(keyCode, event);
+//    }
+//
+//    private void decodeOrStoreSavedBitmap(Bitmap bitmap, Result result) {
+//        // Bitmap isn't used yet -- will be used soon
+//        if (handler == null) {
+//            savedResultToShow = result;
+//        } else {
+//            if (result != null) {
+//                savedResultToShow = result;
+//            }
+//            if (savedResultToShow != null) {
+//                Message message = Message.obtain(handler, DECODE_SUCCEDED, savedResultToShow);
+//                handler.sendMessage(message);
+//            }
+//            savedResultToShow = null;
+//        }
+//    }
+//
+//    @Override
+//    public void surfaceCreated(SurfaceHolder holder) {
+//        if (holder == null) {
+//            Log.e(TAG, "*** WARNING *** surfaceCreated() gave us a null surface!");
+//        }
+//        if (!hasSurface) {
+//            hasSurface = true;
+//            initCamera(holder);
+//        }
+//    }
+//
+//    @Override
+//    public void surfaceDestroyed(SurfaceHolder holder) {
+//        hasSurface = false;
+//    }
+//
+//    @Override
+//    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+//
+//    }
+//
+//    public void setmCallBack(IResultCallback mCallBack) {
+//        this.mCallBack = mCallBack;
+//    }
+//
+//    public void setFramingRect(int width, int height, int left, int top) {
+//      setFramingRect(new Rect(left, top, left + width, top + height));
+//    }
+//
+//    public void setFramingRect(Rect rect) {
+//      this.customFramingRect = rect;
+//      if (cameraManager!=null) {
+//        cameraManager.setManualFramingRect(rect);
+//      }
+//    }
+//
+//    public interface IResultCallback {
+//        void result(Result lastResult);
+//    }
+//
+//    /**
+//     * A valid barcode has been found, so give an indication of success and show the results.
+//     *
+//     * @param rawResult   The contents of the barcode.
+//     * @param scaleFactor amount by which thumbnail was scaled
+//     * @param barcode     A greyscale bitmap of the camera data which was decoded.
+//     */
+//    public void handleDecode(Result rawResult, Bitmap barcode, float scaleFactor) {
+//        inactivityTimer.onActivity();
+//        lastResult = rawResult;
+//
+//        beepManager.playBeepSoundAndVibrate();
+//        drawResultPoints(barcode, scaleFactor, rawResult);
+//
+//        if (mCallBack != null) {
+//            mCallBack.result(rawResult);
+//        }
+//
+//        restartPreviewAfterDelay(500L);
+//    }
+//
+//    private boolean isPortrait() {
+//    	if (getView().getWidth() < getView().getHeight())
+//    		return true;
+//    	else
+//    		return false;
+//    }
+//
+//    /**
+//     * Superimpose a line for 1D or dots for 2D to highlight the key features of the barcode.
+//     *
+//     * @param barcode     A bitmap of the captured image.
+//     * @param scaleFactor amount by which thumbnail was scaled
+//     * @param rawResult   The decoded results which contains the points to draw.
+//     */
+//    private void drawResultPoints(Bitmap barcode, float scaleFactor, Result rawResult) {
+//        ResultPoint[] points = rawResult.getResultPoints();
+//        if (points != null && points.length > 0 && barcode != null) {
+//            Canvas canvas = new Canvas(barcode);
+//            Paint paint = new Paint();
+//            paint.setColor(getResources().getColor(R.color.result_points));
+//
+//            if (points.length == 2) {
+//                paint.setStrokeWidth(4.0f);
+//                drawLine(canvas, paint, points[0], points[1], scaleFactor);
+//            } else if (points.length == 4 &&
+//                    (rawResult.getBarcodeFormat() == BarcodeFormat.UPC_A ||
+//                            rawResult.getBarcodeFormat() == BarcodeFormat.EAN_13)) {
+//                // Hacky special case -- draw two lines, for the barcode and metadata
+//                drawLine(canvas, paint, points[0], points[1], scaleFactor);
+//                drawLine(canvas, paint, points[2], points[3], scaleFactor);
+//            } else {
+//                paint.setStrokeWidth(10.0f);
+//                for (ResultPoint point : points) {
+//                    canvas.drawPoint(scaleFactor * point.getX(), scaleFactor * point.getY(), paint);
+//                }
+//            }
+//
+//            if (isPortrait()) {
+//            	Log.d(TAG, "rotating results canvas");
+//            	canvas.rotate(90);
+//            }
+//        }
+//    }
+//
+//    private static void drawLine(Canvas canvas, Paint paint, ResultPoint a, ResultPoint b, float scaleFactor) {
+//        if (a != null && b != null) {
+//            canvas.drawLine(scaleFactor * a.getX(),
+//                    scaleFactor * a.getY(),
+//                    scaleFactor * b.getX(),
+//                    scaleFactor * b.getY(),
+//                    paint);
+//        }
+//    }
+//
+//    private void sendReplyMessage(int id, Object arg, long delayMS) {
+//        Message message = Message.obtain(handler, id, arg);
+//        if (delayMS > 0L) {
+//            handler.sendMessageDelayed(message, delayMS);
+//        } else {
+//            handler.sendMessage(message);
+//        }
+//    }
+//
+//    private void initCamera(SurfaceHolder surfaceHolder) {
+//        if (surfaceHolder == null) {
+//            throw new IllegalStateException("No SurfaceHolder provided");
+//        }
+//        if (cameraManager.isOpen()) {
+//            Log.w(TAG, "initCamera() while already open -- late SurfaceView callback?");
+//            return;
+//        }
+//        try {
+//            cameraManager.openDriver(surfaceHolder);
+//            // Creating the handler starts the preview, which can also throw a RuntimeException.
+//            if (handler == null) {
+//                handler = new BarCodeScannerHandler(this, decodeFormats, decodeHints, characterSet, cameraManager);
+//            }
+//            decodeOrStoreSavedBitmap(null, null);
+//        } catch (IOException ioe) {
+//            Log.w(TAG, ioe);
+//        } catch (RuntimeException e) {
+//            // Barcode Scanner has seen crashes in the wild of this variety:
+//            // java.?lang.?RuntimeException: Fail to connect to camera service
+//            Log.w(TAG, "Unexpected error initializing camera", e);
+//        }
+//
+//    }
+//
+//    public void restartPreviewAfterDelay(long delayMS) {
+//        if (handler != null) {
+//            handler.sendEmptyMessageDelayed(RESTART_PREVIEW, delayMS);
+//        }
+//    }
+//
+//    public void drawViewfinder() {
+//        viewfinderView.drawViewfinder();
+//    }
+//}
