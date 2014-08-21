@@ -19,6 +19,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name="com.welcu.android.zxingfragmentlibsample.SampleNestedFragmentActivity" android:theme="@style/AppTheme">
+        </activity>
+        <activity android:name="com.welcu.android.zxingfragmentlibsample.SampleStretchedActivity" android:theme="@style/AppTheme"></activity>
     </application>
 
 </manifest>
