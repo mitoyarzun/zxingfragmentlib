@@ -1,33 +1,31 @@
-apply plugin: 'android'
-
-repositories {
-  mavenCentral()
-}
-
-dependencies {
-	compile project(':library')	
-}
+apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 19
-    buildToolsVersion "19.0.0"
-
-    sourceSets {
-        main {
-            manifest.srcFile 'AndroidManifest.xml'
-            java.srcDirs = ['src']
-            resources.srcDirs = ['src']
-            aidl.srcDirs = ['src']
-            renderscript.srcDirs = ['src']
-            res.srcDirs = ['res']
-            assets.srcDirs = ['assets']
-        }
-
-        instrumentTest.setRoot('tests')
-    }
+    buildToolsVersion '20.0.0'
 
     defaultConfig {
+        applicationId "com.welcu.android.zxingfragmentsample"
         minSdkVersion 7
         targetSdkVersion 19
+        versionCode 1
+        versionName "1.0"
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+    buildTypes {
+        release {
+            runProguard false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile project(':library')
+    compile 'com.android.support:appcompat-v7:20.0.0'
 }
