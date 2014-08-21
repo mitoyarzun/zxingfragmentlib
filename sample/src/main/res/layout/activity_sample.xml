@@ -12,7 +12,7 @@
             android:name="com.welcu.android.zxingfragmentlibsample.SampleFragment"
             android:id="@+id/scanner_fragment"
             android:layout_gravity="center"
-            tools:layout="@layout/capture"
+            tools:layout="@layout/encode"
             android:layout_alignParentLeft="true"
             android:layout_marginLeft="0dp"
             android:layout_alignParentTop="true"

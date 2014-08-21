@@ -270,13 +270,13 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
     lastResult = null;
 
     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-
-    if (prefs.getBoolean(PreferencesActivity.KEY_DISABLE_AUTO_ORIENTATION, true)) {
-      //noinspection ResourceType
-      getActivity().setRequestedOrientation(getCurrentOrientation());
-    } else {
-      getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-    }
+//
+//    if (prefs.getBoolean(PreferencesActivity.KEY_DISABLE_AUTO_ORIENTATION, true)) {
+//      //noinspection ResourceType
+//      getActivity().setRequestedOrientation(getCurrentOrientation());
+//    } else {
+//      getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+//    }
 
 //    resetStatusView();
 

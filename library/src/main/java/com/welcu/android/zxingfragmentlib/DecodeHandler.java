@@ -98,8 +98,8 @@ final class DecodeHandler extends Handler {
     Bitmap bitmap = Bitmap.createBitmap(pixels, 0, width, width, height, Bitmap.Config.ARGB_8888);
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     bitmap.compress(Bitmap.CompressFormat.JPEG, 50, out);
-    bundle.putByteArray(com.google.zxing.client.android.DecodeThread.BARCODE_BITMAP, out.toByteArray());
-    bundle.putFloat(com.google.zxing.client.android.DecodeThread.BARCODE_SCALED_FACTOR, (float) width / source.getWidth());
+    bundle.putByteArray(DecodeThread.BARCODE_BITMAP, out.toByteArray());
+    bundle.putFloat(DecodeThread.BARCODE_SCALED_FACTOR, (float) width / source.getWidth());
   }
 
 }

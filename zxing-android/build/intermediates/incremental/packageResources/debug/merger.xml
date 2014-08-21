@@ -41,11 +41,6 @@
                 qualifiers=""
                 type="layout" />
             <file
-                name="capture"
-                path="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/layout/capture.xml"
-                qualifiers=""
-                type="layout" />
-            <file
                 name="encode"
                 path="/Users/joyarzun/proyectos/welcu/android/zxingfragmentlib/zxing-android/src/main/res/layout/encode.xml"
                 qualifiers=""
