@@ -23,6 +23,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.AsyncTask;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.util.Log;
 
 /**
@@ -49,7 +50,11 @@ public final class InactivityTimer {
   public synchronized void onActivity() {
     cancel();
     inactivityTask = new InactivityAsyncTask();
-    inactivityTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.GINGERBREAD_MR1) {
+      inactivityTask.execute();
+    } else {
+      inactivityTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
   }
 
   public synchronized void onPause() {

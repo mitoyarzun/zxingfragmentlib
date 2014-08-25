@@ -22,6 +22,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.graphics.Point;
 import android.hardware.Camera;
+import android.os.Build;
 import android.preference.PreferenceManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -55,7 +56,12 @@ final class CameraConfigurationManager {
     WindowManager manager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
     Display display = manager.getDefaultDisplay();
     Point theScreenResolution = new Point();
-    display.getSize(theScreenResolution);
+
+    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.GINGERBREAD_MR1) {
+      theScreenResolution = new Point(display.getWidth(), display.getHeight());
+    } else {
+      display.getSize(theScreenResolution);
+    }
 
     if (getScreenOrientation()==ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) {
       camera.setDisplayOrientation(90);
