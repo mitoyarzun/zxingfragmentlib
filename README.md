@@ -14,6 +14,8 @@ Please browse the ```before-rebuild``` branch to get the previous version.
 
 There are some bugs that prevent the scanning in portrait mode (especially with 1D codes, QR and others should be ok).
 
+I've tested the code and it's working (at least) in Android 2.3 (Gingerbread) and 4.4 (KitKat). If yours doesn't work, please create an issue.
+
 ## Goals
 
 Here are the basic guidelines for this project. As always, suggestions are appreciated :)
