@@ -63,10 +63,23 @@ final class CameraConfigurationManager {
       display.getSize(theScreenResolution);
     }
 
+    int orientation = 0;
+
     if (getScreenOrientation()==ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) {
-      camera.setDisplayOrientation(90);
+      orientation = 90;
     } else if (getScreenOrientation()==ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE) {
-      camera.setDisplayOrientation(180);
+      orientation = 180;
+    }
+
+    if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.GINGERBREAD) {
+      camera.setDisplayOrientation(orientation);
+    } else {
+      if (getScreenOrientation()==ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) {
+        parameters.set("orientation", "portrait");
+      } else {
+        parameters.set("orientation", "landscape");
+      }
+      camera.setParameters(parameters);
     }
 
     screenResolution = theScreenResolution;
@@ -175,7 +188,12 @@ final class CameraConfigurationManager {
 
   // Taken from http://stackoverflow.com/a/10383164/902599
   private int getScreenOrientation() {
-    int rotation = ((Activity) context).getWindowManager().getDefaultDisplay().getRotation();
+    int rotation;
+    if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.GINGERBREAD) {
+        rotation = ((Activity) context).getWindowManager().getDefaultDisplay().getRotation();
+    } else {
+        rotation = ((Activity) context).getWindowManager().getDefaultDisplay().getOrientation();
+    }
     DisplayMetrics dm = new DisplayMetrics();
     ((Activity) context).getWindowManager().getDefaultDisplay().getMetrics(dm);
     int width = dm.widthPixels;

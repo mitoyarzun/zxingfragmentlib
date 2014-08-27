@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "com.welcu.android.zxingfragmentsample"
-        minSdkVersion 8
+        minSdkVersion 7
         targetSdkVersion 19
         versionCode 1
         versionName "1.0"
