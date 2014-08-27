@@ -58,12 +58,10 @@ Any code improvements and bug reports are appreciated, just submit a pull reques
 
 ## TODO
 
-* Add a LICENSE file (Apache 2.0 ?)
 * Remove unused XMLs
 * Remove PreferencesActivity
-* ~~Add a gradle build file~~
 * Add front-camera selector
-* Add compiler jar/aar file.
+* Test in more devices
 
 ## Author
 
