@@ -11,6 +11,7 @@ import com.welcu.android.zxingfragmentlib.BarCodeScannerFragment;
  */
 public class SampleFragment extends BarCodeScannerFragment {
 
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -24,5 +25,10 @@ public class SampleFragment extends BarCodeScannerFragment {
 
     public SampleFragment() {
 
+    }
+
+    @Override
+    public int getRequestedCameraId() {
+        return -1; // set to 1 to use the front camera (won't work if the device doesn't have one, it is up to you to handle this method ;)
     }
 }

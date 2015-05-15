@@ -146,6 +146,7 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
     }
 
     cameraManager = new CameraManager(getActivity());
+    cameraManager.setManualCameraId(getRequestedCameraId());
 
     viewfinderView = (ViewfinderView) getView().findViewById(R.id.viewfinder_view);
     viewfinderView.setCameraManager(cameraManager);
@@ -205,6 +206,10 @@ public class BarCodeScannerFragment extends Fragment implements SurfaceHolder.Ca
       SurfaceHolder surfaceHolder = surfaceView.getHolder();
       surfaceHolder.removeCallback(this);
     }
+  }
+
+  public int getRequestedCameraId() {
+    return -1;
   }
 
   public void setTorch(boolean state) {
